@@ -31,6 +31,7 @@ class GuiTests(unittest.TestCase):
         self.app = gui.App(self.root, str(self.files))
 
     def tearDown(self):
+        self.root.update_idletasks()
         self.root.destroy(); self.temp.cleanup()
 
     def wait_for(self, predicate, timeout=5):
@@ -40,6 +41,43 @@ class GuiTests(unittest.TestCase):
             if predicate(): return
             time.sleep(0.01)
         self.fail("Timed out waiting for GUI state")
+
+    def test_folder_argument_with_spaces_and_invalid_folder(self):
+        target = self.base / "Folder with spaces"
+        target.mkdir()
+        (target / "one.txt").write_text("one")
+        self.app.folder.set(str(target))
+        self.wait_for(lambda: len(self.app.items) == 1 and self.app._preview_ready)
+        self.assertEqual(self.app.folder.get(), str(target))
+        self.assertEqual(self.app.items[0].old_name, "one.txt")
+        for bad in (self.base / "missing folder", target / "one.txt"):
+            self.app.folder.set(str(bad))
+            self.wait_for(lambda: "Folder not found" in self.app.status.get())
+            self.assertEqual(self.app.folder.get(), str(bad))
+            self.assertEqual(str(self.app.go["state"]), "disabled")
+
+    def test_run_forwards_argument_and_keeps_no_argument_empty(self):
+        fake_root = mock.MagicMock()
+        with mock.patch.object(gui.tk, "Tk", return_value=fake_root), \
+             mock.patch.object(gui.tk, "PhotoImage"), \
+             mock.patch.object(gui.ttk, "Style") as style, \
+             mock.patch.object(gui, "App") as app:
+            style.return_value.theme_names.return_value = []
+            for args, expected in ((["RenameLedger.exe"], ""),
+                                   (["RenameLedger.exe", str(self.base / "Folder with spaces")], str(self.base / "Folder with spaces")),
+                                   (["RenameLedger.exe", str(self.base / "missing")], str(self.base / "missing"))):
+                with mock.patch.object(gui.sys, "argv", args):
+                    gui.run()
+                    app.assert_called_with(fake_root, expected)
+            with mock.patch.object(gui.sys, "argv", ["renameledger", "gui"]):
+                gui.run("")
+                app.assert_called_with(fake_root, "")
+
+    def test_cli_gui_command_does_not_use_subcommand_as_folder(self):
+        from renameledger import cli
+        with mock.patch.object(gui, "run") as run:
+            self.assertEqual(cli.main(["gui"]), 0)
+            run.assert_called_once_with("")
 
     def test_preview_updates_for_recursive_and_invalid_options(self):
         self.wait_for(lambda: len(self.app.items) == 1 and str(self.app.go["state"]) == "normal")

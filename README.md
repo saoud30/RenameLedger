@@ -59,6 +59,30 @@ renameledger
 
 Running `renameledger` without arguments opens the window. The installed package also provides the `renameledger-gui` command.
 
+## Windows File Explorer integration (optional)
+
+This development build can add **Rename with RenameLedger** to the folder right-click menu for the current Windows user. It does not require administrator rights. In Windows 11, right-click a folder and choose **Show more options** to find the entry. Selected files and folder-background menus are not supported.
+
+Build the current project with `build-exe.bat` first, or supply the full path to a trusted standalone `RenameLedger.exe`. The entry points to that exact executable, so keep it in a stable location. In PowerShell, from the project folder:
+
+```powershell
+# Preview the change without writing to the registry:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-explorer-menu.ps1 -WhatIf
+
+# Install; review the displayed path and type INSTALL to confirm:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-explorer-menu.ps1
+
+# If the EXE is elsewhere, supply its path instead:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\install-explorer-menu.ps1 -ExePath "C:\Program Files\RenameLedger\RenameLedger.exe"
+
+# Remove the entry; review and type REMOVE to confirm:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\uninstall-explorer-menu.ps1
+```
+
+The default executable is `dist\RenameLedger.exe`. Paths containing spaces are supported; executable paths containing `%` are rejected to avoid ambiguity with Shell placeholders. If the executable is moved or deleted, uninstall and reinstall the entry with its new location. The executable must exist at installation time.
+
+After confirmation, the installer creates `HKEY_CURRENT_USER\Software\Classes\Directory\shell\RenameLedger` with a display label, icon, ownership marker and executable path. Its `command` subkey contains `"<full path to RenameLedger.exe>" "%1"`. The installer refuses an existing same-named user or machine key rather than overwriting or shadowing it. The installer may create missing parent keys; the uninstaller removes only an unchanged, recognized RenameLedger key and its command, leaving parent keys and other entries alone. If installation is interrupted or the key was modified, inspect it manually before removing it. No registry changes occur merely by running the app or building it.
+
 ## Rename files
 
 1. Open RenameLedger and select a folder with **Browse…**.
@@ -109,6 +133,7 @@ renameledger undo "$env:USERPROFILE\Documents\RenameLedger\YOUR_RECORD.csv"
 
 - **Windows SmartScreen warning:** If you trust the download and have verified its source, choose **More info** → **Run anyway**. Do not bypass a warning for an untrusted file.
 - **Include subfolders is not visible:** Check that you are running the newly built `dist\RenameLedger.exe`, not an older downloaded executable. The v1.0.1 release does not include this option.
+- **Explorer menu is missing or does nothing:** On Windows 11 check **Show more options**. Confirm the registered EXE still exists, then uninstall and reinstall the menu if its location changed.
 - **Python not found:** Install Python and its launcher, or add Python to PATH, then reopen the terminal or run the batch file again.
 - **A file is open or a rename fails:** Close programs using the file and retry. The app attempts to roll back a failed batch; check the folder and CSV before retrying.
 - **A file is missing during undo:** Restore it to the recorded folder under its renamed name, then load the original CSV again; otherwise it will be skipped.
@@ -117,7 +142,7 @@ renameledger undo "$env:USERPROFILE\Documents\RenameLedger\YOUR_RECORD.csv"
 
 ## Contributing
 
-Issues and pull requests are welcome. Run the tests from the project folder and, on Windows, build the executable with:
+Issues and pull requests are welcome. On Windows, the PowerShell registry-helper tests use a temporary per-user test key and remove it afterward; they never change the Explorer menu key. Run the tests from the project folder and build the executable with:
 
 ```powershell
 py -m unittest discover -s tests -v

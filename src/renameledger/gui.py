@@ -350,7 +350,10 @@ class App(ttk.Frame):
             self.root.destroy()
 
 
-def run(folder: str = "") -> None:
+def run(folder: str | None = None) -> None:
+    # Explicit empty string keeps CLI subcommand names out of the folder field.
+    if folder is None:
+        folder = sys.argv[1] if len(sys.argv) > 1 else ""
     if sys.platform == "win32":
         try:
             import ctypes
@@ -370,7 +373,7 @@ def run(folder: str = "") -> None:
         pass
     if "vista" in ttk.Style().theme_names():
         ttk.Style().theme_use("vista")
-    App(root, folder or (sys.argv[1] if len(sys.argv) > 1 and Path(sys.argv[1]).is_dir() else ""))
+    App(root, folder)
     root.mainloop()
 
 

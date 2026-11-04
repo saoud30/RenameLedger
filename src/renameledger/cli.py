@@ -45,7 +45,7 @@ def main(argv=None) -> int:
     a = p.parse_args(argv)
     if a.cmd in (None, "gui"):
         from .gui import run
-        run()
+        run("")
         return 0
 
     try:
