@@ -42,7 +42,8 @@ class ExplorerScriptTests(unittest.TestCase):
             shutil.copyfile(ROOT / name, project / name)
         elsewhere = Path(directory) / "Other working directory"
         elsewhere.mkdir()
-        return project, elsewhere
+        # Resolve existing directories before appending the possibly missing dist/EXE.
+        return project.resolve(strict=True), elsewhere.resolve(strict=True)
 
     def _invoke_script(self, script, cwd, env=None):
         shell = shutil.which("powershell.exe") or shutil.which("pwsh")
@@ -67,6 +68,43 @@ class ExplorerScriptTests(unittest.TestCase):
             expected = project / "dist" / "RenameLedger.exe"
             self.assertIn("".join(str(expected).split()).lower(), "".join(plain.split()).lower())
             self.assertNotIn("Cannot bind argument", output)
+
+    def test_copy_scripts_resolves_directory_alias(self):
+        with tempfile.TemporaryDirectory(prefix="RenameLedger Alias Test ") as folder:
+            actual = Path(folder) / "Actual directory"
+            actual.mkdir()
+            alias = Path(folder) / "Alias"
+            try:
+                alias.symlink_to(actual, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"Directory symlinks unavailable: {exc}")
+            project, elsewhere = self._copy_scripts(alias)
+            self.assertEqual(project, (actual / "Project with spaces").resolve(strict=True))
+            self.assertEqual(elsewhere, (actual / "Other working directory").resolve(strict=True))
+
+    @unittest.skipUnless(os.name == "nt", "Requires Windows short-path support")
+    def test_copy_scripts_canonicalizes_windows_short_paths(self):
+        import ctypes
+        from ctypes import wintypes
+
+        get_short_path = ctypes.WinDLL("kernel32", use_last_error=True).GetShortPathNameW
+        get_short_path.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+        get_short_path.restype = wintypes.DWORD
+        with tempfile.TemporaryDirectory(prefix="RenameLedger Path Test ") as folder:
+            long_folder = str(Path(folder).resolve(strict=True))
+            length = get_short_path(long_folder, None, 0)
+            if not length:
+                raise ctypes.WinError(ctypes.get_last_error())
+            buffer = ctypes.create_unicode_buffer(length)
+            if not get_short_path(long_folder, buffer, length):
+                raise ctypes.WinError(ctypes.get_last_error())
+            short_folder = buffer.value
+            if os.path.normcase(short_folder) == os.path.normcase(long_folder):
+                self.skipTest("8.3 short names are unavailable for this temporary directory")
+            project, elsewhere = self._copy_scripts(short_folder)
+            self.assertEqual(project, (Path(long_folder) / "Project with spaces").resolve(strict=True))
+            self.assertEqual(elsewhere, (Path(long_folder) / "Other working directory").resolve(strict=True))
+            self.assertIn(" ", str(project))
 
     def test_both_scripts_initialize_from_another_working_directory(self):
         with tempfile.TemporaryDirectory(prefix="RenameLedger Path Test ") as folder:
@@ -101,8 +139,14 @@ class ExplorerScriptTests(unittest.TestCase):
             result = self._invoke_script(project / "install-explorer-menu.ps1", elsewhere)
             output = result.stdout + result.stderr
             self.assertEqual(result.returncode, 0, output)
-            self.assertIn(("Executable: " + str(exe)).lower(), output.lower())
-            self.assertIn('"' + str(exe) + '" "%1"', output)
+            executable = re.search(r"(?m)^Executable: (.+)\r?$", output)
+            command = re.search(r'(?m)^Command: "([^"\r\n]+)" "%1"\r?$', output)
+            self.assertIsNotNone(executable, output)
+            self.assertIsNotNone(command, output)
+            expected = os.path.normcase(str(exe.resolve(strict=True)))
+            self.assertEqual(expected, os.path.normcase(str(Path(executable.group(1)).resolve(strict=True))))
+            self.assertEqual(expected, os.path.normcase(str(Path(command.group(1)).resolve(strict=True))))
+            self.assertIn(" ", str(exe))
             self.assertFalse(exists(winreg.HKEY_CURRENT_USER))
 
     @unittest.skipUnless(os.name == "nt", "Requires Windows PowerShell and registry")
