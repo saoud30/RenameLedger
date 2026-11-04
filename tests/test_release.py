@@ -31,6 +31,8 @@ class ReleaseFileTests(unittest.TestCase):
                        "renameledger.ico", "--name RenameLedger"):
             self.assertIn(needed.lower(), bat.lower(), needed)
             self.assertIn(needed.lower(), yml.lower(), needed)
+        for text in (bat, yml):
+            self.assertIn('--add-data "src/renameledger/assets:renameledger/assets"', text.replace("\\", "/"))
 
 
 if __name__ == "__main__":

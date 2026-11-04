@@ -32,6 +32,7 @@ def main(argv=None) -> int:
         s.add_argument("--ext", default="", help="only these extensions, comma separated: pdf,jpg")
         s.add_argument("--sort", choices=["name", "modified"], default="name")
         s.add_argument("--lowercase-ext", action="store_true")
+        s.add_argument("--recursive", action="store_true", help="include subfolders")
         if name == "rename":
             s.add_argument("--ledger", help="where to save the CSV (default: Documents\\RenameLedger)")
             s.add_argument("-y", "--yes", action="store_true", help="don't ask for confirmation")
@@ -58,7 +59,7 @@ def main(argv=None) -> int:
             return 0
 
         items = core.plan(a.folder, a.prefix, a.start, a.digits, a.separator,
-                          a.ext.split(",") if a.ext else None, a.sort, a.lowercase_ext)
+                          a.ext.split(",") if a.ext else None, a.sort, a.lowercase_ext, a.recursive)
         if not items:
             print("No matching files.")
             return 1

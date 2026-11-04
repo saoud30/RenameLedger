@@ -1,5 +1,4 @@
 import csv
-import os
 import sys
 import tempfile
 import unittest
@@ -35,7 +34,8 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(items[2].old_name, "img2.jpg")  # natural sort
         core.apply(self.dir, items, self.ledger)
         self.assertEqual((self.dir / "sample_003.jpg").read_text(), "img2.jpg")
-        rows = list(csv.DictReader(open(self.ledger, encoding="utf-8-sig")))
+        with open(self.ledger, encoding="utf-8-sig") as f:
+            rows = list(csv.DictReader(f))
         self.assertEqual({r["status"] for r in rows}, {"renamed"})
 
     def test_undo_restores_everything(self):
@@ -69,7 +69,7 @@ class CoreTests(unittest.TestCase):
     def test_failure_rolls_back(self):
         self.make("a.txt", "b.txt", "c.txt")
         items = core.plan(self.dir, "z")
-        real, calls = os.rename, []
+        real, calls = core._move, []
 
         def flaky(src, dst):
             calls.append(1)
@@ -77,11 +77,12 @@ class CoreTests(unittest.TestCase):
                 raise PermissionError("file in use")
             real(src, dst)
 
-        with mock.patch("renameledger.core.os.rename", flaky):
+        with mock.patch("renameledger.core._move", flaky):
             with self.assertRaises(core.RenameError):
                 core.apply(self.dir, items, self.ledger)
         self.assertEqual(self.names(), ["a.txt", "b.txt", "c.txt"])
-        rows = list(csv.DictReader(open(self.ledger, encoding="utf-8-sig")))
+        with open(self.ledger, encoding="utf-8-sig") as f:
+            rows = list(csv.DictReader(f))
         self.assertEqual({r["status"] for r in rows}, {"failed"})
 
     def test_refuses_if_target_appears_after_preview(self):
