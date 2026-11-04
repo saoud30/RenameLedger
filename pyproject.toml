@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "renameledger"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Batch-rename files on Windows and keep a CSV record of every change, with one-click undo."
 readme = "README.md"
 license = { text = "MIT" }
@@ -19,3 +19,9 @@ renameledger-gui = "renameledger.gui:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "renameledger.__version__" }
+
+[tool.setuptools.package-data]
+renameledger = ["assets/*"]

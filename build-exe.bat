@@ -3,7 +3,7 @@ rem Builds dist\RenameLedger.exe (a single file you can share; no Python needed 
 cd /d "%~dp0"
 py -m pip install . || goto :err
 py -m pip install --upgrade pyinstaller || goto :err
-py -m PyInstaller --noconfirm --onefile --windowed --paths src --name RenameLedger RenameLedger.pyw || goto :err
+py -m PyInstaller --noconfirm --onefile --windowed --paths src --icon src\renameledger\assets\renameledger.ico --version-file version_info.txt --add-data "src\renameledger\assets:renameledger\assets" --name RenameLedger RenameLedger.pyw || goto :err
 echo.
 echo Built: %~dp0dist\RenameLedger.exe
 pause

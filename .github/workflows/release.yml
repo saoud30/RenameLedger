@@ -25,7 +25,7 @@ jobs:
       - run: |
           python -m pip install .
           python -m pip install pyinstaller
-          pyinstaller --noconfirm --onefile --windowed --paths src --name RenameLedger RenameLedger.pyw
+          pyinstaller --noconfirm --onefile --windowed --paths src --icon src/renameledger/assets/renameledger.ico --version-file version_info.txt --add-data "src/renameledger/assets:renameledger/assets" --name RenameLedger RenameLedger.pyw
 
       - uses: actions/upload-artifact@v4
         with:

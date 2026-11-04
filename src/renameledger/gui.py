@@ -214,6 +214,14 @@ def run(folder: str = "") -> None:
     root = tk.Tk()
     root.title(f"RenameLedger {__version__}")
     root.minsize(760, 480)
+    assets = Path(__file__).resolve().parent / "assets"
+    try:
+        if sys.platform == "win32":
+            root.iconbitmap(default=str(assets / "renameledger.ico"))  # default= also covers dialogs
+        else:
+            root.iconphoto(True, tk.PhotoImage(file=str(assets / "renameledger.png")))
+    except tk.TclError:
+        pass  # a missing icon must never stop the app from opening
     if "vista" in ttk.Style().theme_names():
         ttk.Style().theme_use("vista")
     App(root, folder or (sys.argv[1] if len(sys.argv) > 1 and Path(sys.argv[1]).is_dir() else ""))
