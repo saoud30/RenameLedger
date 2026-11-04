@@ -1,74 +1,123 @@
-# RenameLedger
+<div align="center">
+  <img src="src/renameledger/assets/renameledger.png" alt="RenameLedger icon" width="96">
+  <h1>RenameLedger</h1>
+  <p>Batch-rename files and keep a record of every change.</p>
+  <p>
+    <img src="https://img.shields.io/badge/Python-3.9%2B-blue" alt="Python 3.9 or later">
+    <img src="https://img.shields.io/badge/platform-Windows-0078D4" alt="Windows">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license">
+    <a href="https://github.com/saoud30/RenameLedger/releases/tag/v1.0.1"><img src="https://img.shields.io/github/v/release/saoud30/RenameLedger" alt="Latest release"></a>
+  </p>
+</div>
 
-Batch-rename files on Windows **and keep a record of every change**.
+RenameLedger gives files consistent names while saving the original-to-new mapping in a CSV. Review the names before committing, and use the record to restore them later.
 
-Renaming 200 files to `sample_001.pdf`, `sample_002.pdf`… is easy. Knowing afterwards which file was
-`Interview - Priya.docx` is not. RenameLedger saves a CSV that maps every old name to its new name,
-and can undo the whole batch from that CSV.
+<img src="docs/images/demo.gif" alt="RenameLedger rename and restore demonstration" width="800">
 
-Useful for anonymising research data, tidying scans and photos, or any rename you might need to trace later.
+## Features
 
-![RenameLedger window](screenshot.png)
+- Live preview of names before you confirm a batch.
+- Numbered names with a configurable prefix, separator, starting number and digit width.
+- Filter by file extension; sort by name or modification time.
+- CSV records and a restore preview for undoing completed renames.
+- Collision checks, two-step renaming and rollback on rename errors.
+- A graphical window and a command-line interface.
 
-## Use it on Windows
+## Screenshots
 
-**Option A: the .exe (no Python needed)**
-Download `RenameLedger.exe` from the [Releases](../../releases) page and double-click it.
+<img src="docs/images/main-window.png" alt="RenameLedger window after a batch rename" width="800">
 
-**Option B: from this folder**
-1. Install Python 3.9+ from [python.org](https://www.python.org/downloads/) if you don't have it.
-2. Double-click **`RenameLedger.bat`**.
+*The main window after renaming five files.*
 
-## How it works
+<img src="docs/images/undo-preview.png" alt="RenameLedger restored confirmation and undo record" width="800">
 
-1. **Browse…** to a folder.
-2. Type a prefix. The table shows the new names as you type.
-3. Click **Rename** and confirm.
-4. The record is saved in `Documents\RenameLedger\` as a CSV you can open in Excel.
+*The confirmation after restoring the original names.*
 
-To undo, click **Undo a rename…**, pick the record, check the preview and click **Restore names**.
+These captures show the 1.1.0 development build; personal path details have been obscured. The downloadable release below is v1.0.1.
 
-### Safety
+## Download and install
 
-- Nothing is renamed until you confirm. Existing files are never overwritten.
-- If one rename fails (for example, a file is open in another program), the batch is rolled back.
-- Files are renamed in two steps (old → temporary → new), so swaps and re-runs on renamed files work.
-- Ignores sub-folders, `desktop.ini` and `Thumbs.db`. Files are sorted naturally (`scan 2` before `scan 10`).
-- The record is kept **outside** the renamed folder because it contains the original names.
-  If those names are sensitive, protect the record or delete it.
+### Windows executable (no Python required)
+
+Download **RenameLedger.exe** from the [v1.0.1 release](https://github.com/saoud30/RenameLedger/releases/tag/v1.0.1), then double-click it.
+
+### Run from the project folder
+
+1. Install [Python 3.9 or later](https://www.python.org/downloads/), including the Python launcher or adding Python to PATH.
+2. Download or clone this repository.
+3. Double-click `RenameLedger.bat` in the project folder.
+
+### Install from source
+
+From PowerShell in the project folder:
+
+```powershell
+py -m pip install .
+renameledger
+```
+
+Running `renameledger` without arguments opens the window. The installed package also provides the `renameledger-gui` command.
+
+## Rename files
+
+1. Open RenameLedger and select a folder with **Browse…**.
+2. Enter a **Prefix**. Adjust the separator, starting number and digits if needed. For example, `sample` with the default settings produces `sample_001.pdf`.
+3. Optionally choose the order, enter file types such as `pdf,jpg`, or select **Lowercase extensions**.
+4. Review the current and proposed names in the table.
+5. Select **Rename** and confirm. The window shows where the CSV record was saved; **Open ledgers** opens the records folder.
+
+## Records and restore
+
+By default, CSV records are saved in `Documents\RenameLedger`, outside the folder being renamed. Each row records the batch ID, timestamp, folder, old name, new name, size and status. The CSV uses UTF-8 with a BOM so it opens in Excel. Keep the record safe: it contains the original names and folder path.
+
+To restore names:
+
+1. Select **Undo a rename…** and choose the original batch CSV.
+2. Review the restore preview. Missing files are marked and skipped. Press **Esc** to cancel.
+3. Select **Restore names** and confirm. A separate `_undo_HHMMSS.csv` record is saved alongside the original.
+
+The record is written before renaming starts. A `pending` status can indicate that the app was interrupted; check the files and record carefully before taking further action.
+
+## Options and behavior
+
+- Name sorting is natural: `scan 2` comes before `scan 10`. Modification-time sorting is also available.
+- The type filter accepts comma-separated extensions, with or without a leading dot. Leave it blank to include all file types.
+- Only files in the selected folder are processed; subfolders, `desktop.ini`, `Thumbs.db` and RenameLedger temporary files are skipped.
+- Existing items outside the batch are not overwritten; numbering skips their names. A final collision check runs before renaming.
+- Files move through temporary names so swaps and case-only renames can work. If a rename fails, the app attempts to roll the batch back. Check your files and ledger if an error or interruption occurs.
 
 ## Command line
 
-```
-pip install .
+```powershell
 renameledger preview "D:\study\interviews" --prefix sample
-renameledger rename  "D:\study\interviews" --prefix sample --ext docx,pdf
-renameledger undo    "%USERPROFILE%\Documents\RenameLedger\interviews_2026-11-03_161500_ab12cd34.csv"
+renameledger rename "D:\study\interviews" --prefix sample --ext docx,pdf
+renameledger undo "$env:USERPROFILE\Documents\RenameLedger\YOUR_RECORD.csv"
 ```
 
-Options: `--start`, `--digits`, `--separator`, `--ext`, `--sort name|modified`, `--lowercase-ext`,
-`--ledger PATH`, `-y` (skip confirmation). Run `renameledger` with no arguments to open the window.
+`preview` and `rename` accept `--start`, `--digits`, `--separator`, `--ext`, `--sort name|modified` and `--lowercase-ext`. `rename` also accepts `--ledger PATH` to choose the CSV location. Use `-y` with `rename` or `undo` to skip confirmation. Run `renameledger --help` or `renameledger rename --help` for details.
 
-## Record format
+## Requirements
 
-| batch_id | timestamp | folder | old_name | new_name | size_bytes | status |
-|---|---|---|---|---|---|---|
-| ab12cd34 | 2026-11-03T16:15:00 | D:\study\interviews | Interview - Priya.docx | sample_003.docx | 18211 | renamed |
+- Windows for the packaged executable and batch launcher.
+- Python 3.9+ with Tkinter for running from source or using the installed package. The application uses the Python standard library; building the executable requires PyInstaller.
 
-`status` is `renamed`, `unchanged`, `failed`, or `pending` (only seen if the app was killed mid-rename).
+## Troubleshooting
 
-## Development
+- **Windows SmartScreen warning:** If you trust the download and have verified its source, choose **More info** → **Run anyway**. Do not bypass a warning for an untrusted file.
+- **Python not found:** Install Python and its launcher, or add Python to PATH, then reopen the terminal or run the batch file again.
+- **A file is open or a rename fails:** Close programs using the file and retry. The app attempts to roll back a failed batch; check the folder and CSV before retrying.
+- **A file is missing during undo:** Restore it to the recorded folder under its renamed name, then load the original CSV again; otherwise it will be skipped.
+- **Antivirus flags the executable:** Packaged executables can trigger false positives, but do not assume a warning is harmless. Verify the download and scan it before deciding whether to run it; you can run from source instead.
 
+## Contributing
+
+Issues and pull requests are welcome. Run the tests from the project folder and, on Windows, build the executable with:
+
+```powershell
+py -m unittest discover -s tests -v
+.\build-exe.bat
 ```
-python -m unittest discover -s tests -v
-build-exe.bat          # creates dist\RenameLedger.exe with PyInstaller
-```
-
-Pushing a tag such as `v1.0.0` makes GitHub Actions run the tests on Windows, build the .exe and attach
-it to a release.
-
-No dependencies beyond the Python standard library.
 
 ## License
 
-MIT
+[MIT](LICENSE)
